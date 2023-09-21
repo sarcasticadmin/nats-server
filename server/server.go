@@ -2200,7 +2200,7 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 
 	local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
 	tlsCfg := &tls.Config{
-		InsecureSkipVerify: true,
+		Certificates: quicutil.MustGenerateSelfSignedCert(),
 		NextProtos:         []string{quicutil.SingleStreamProto},
 	}
 	ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
