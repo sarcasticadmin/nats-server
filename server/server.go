@@ -45,6 +45,10 @@ import (
 	"github.com/nats-io/nuid"
 
 	"github.com/nats-io/nats-server/v2/logger"
+
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
+	"github.com/netsec-ethz/scion-apps/pkg/quicutil"
+	"inet.af/netaddr"
 )
 
 const (
@@ -2192,15 +2196,23 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 	}
 
 	hp := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
-	l, e := natsListen("tcp", hp)
+	//l, e := natsListen("tcp", hp)
+
+	local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
+	tlsCfg := &tls.Config{
+		Certificates: quicutil.MustGenerateSelfSignedCert(),
+		NextProtos:         []string{quicutil.SingleStreamProto},
+	}
+	ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
+
+	l := quicutil.SingleStreamListener{Listener: ql}
 	s.listenerErr = e
 	if e != nil {
 		s.mu.Unlock()
 		s.Fatalf("Error listening on port: %s, %q", hp, e)
 		return
 	}
-	s.Noticef("Listening for client connections on %s",
-		net.JoinHostPort(opts.Host, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
+	s.Noticef("Listening for client connections %s",  l.Addr())
 
 	// Alert of TLS enabled.
 	if opts.TLSConfig != nil {
