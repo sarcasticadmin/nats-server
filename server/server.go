@@ -2212,8 +2212,7 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 		s.Fatalf("Error listening on port: %s, %q", hp, e)
 		return
 	}
-	s.Noticef("Listening for client connections on %s",
-		net.JoinHostPort(opts.Host, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
+	s.Noticef("Listening for client connections %s",  l.Addr())
 
 	// Alert of TLS enabled.
 	if opts.TLSConfig != nil {
