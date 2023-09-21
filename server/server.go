@@ -48,6 +48,7 @@ import (
 
 	"github.com/netsec-ethz/scion-apps/pkg/pan"
 	"github.com/netsec-ethz/scion-apps/pkg/quicutil"
+	"inet.af/netaddr"
 )
 
 const (
@@ -2197,28 +2198,14 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 	hp := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
 	//l, e := natsListen("tcp", hp)
 
-	scionAddr := "18-ffaa:1:10bf"
-	// Simplistic policy
-	policy, err := pan.PolicyFromCommandline("", "latency", false)
-	log.Println(policy)
-	ipport := &pan.IPPortValue{}
-	log.Println("this is the address", address)
-	log.Println("this is the network", scionAddr)
-	ipport.Set(address)
-	// The address can be of the form of a SCION address (i.e. of the form "ISD-AS,[IP]:port")
-	fullAddr := scionAddr + "," + hp
-	addr, err := pan.ResolveUDPAddr(context.TODO(), fullAddr)
+	local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
 	tlsCfg := &tls.Config{
 		InsecureSkipVerify: true,
 		NextProtos:         []string{quicutil.SingleStreamProto},
 	}
-	log.Println("resolve udbpdrr", addr)
-	ql, err := pan.ListenQUIC(context.Background(), local, nil, tlsConf, nil)
-	if err != nil {
-		golog.Panicf("Failed to listen (%v)", err)
-	}
-	l := quicutil.SingleStreamListener{Listener: ql}
+	ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
 
+	l := quicutil.SingleStreamListener{Listener: ql}
 	s.listenerErr = e
 	if e != nil {
 		s.mu.Unlock()
