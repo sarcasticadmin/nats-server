@@ -16,6 +16,7 @@
       devShells.x86_64-linux.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           go_1_19
+          silver-searcher
         ];
         shellHook = ''
           alias go-build="go build -ldflags \"-w -X main.version=robsversion\" -o ./nats"
