@@ -211,6 +211,7 @@ type Options struct {
 	ServerName            string        `json:"server_name"`
 	Host                  string        `json:"addr"`
 	Port                  int           `json:"port"`
+	Scion                 bool          `json:"scion"`
 	DontListen            bool          `json:"dont_listen"`
 	ClientAdvertise       string        `json:"-"`
 	Trace                 bool          `json:"-"`
@@ -790,6 +791,8 @@ func (o *Options) processConfigFileLine(k string, v interface{}, errors *[]error
 		o.ServerName = v.(string)
 	case "host", "net":
 		o.Host = v.(string)
+	case "scion":
+		o.Scion = v.(bool)
 	case "debug":
 		o.Debug = v.(bool)
 		trackExplicitVal(o, &o.inConfig, "Debug", o.Debug)
@@ -4489,6 +4492,9 @@ func MergeOptions(fileOpts, flagOpts *Options) *Options {
 	if flagOpts.Debug {
 		opts.Debug = true
 	}
+	if flagOpts.Scion {
+		opts.Scion = true
+	}
 	if flagOpts.Trace {
 		opts.Trace = true
 	}
@@ -4802,6 +4808,7 @@ func ConfigureOptions(fs *flag.FlagSet, args []string, printVersion, printHelp, 
 	fs.StringVar(&opts.ClientAdvertise, "client_advertise", "", "Client URL to advertise to other servers.")
 	fs.BoolVar(&opts.Debug, "D", false, "Enable Debug logging.")
 	fs.BoolVar(&opts.Debug, "debug", false, "Enable Debug logging.")
+	fs.BoolVar(&opts.Scion, "scion", false, "Enable Scion QUIC Listener")
 	fs.BoolVar(&opts.Trace, "V", false, "Enable Trace logging.")
 	fs.BoolVar(&trcAndVerboseTrc, "VV", false, "Enable Verbose Trace logging. (Traces system account as well)")
 	fs.BoolVar(&opts.Trace, "trace", false, "Enable Trace logging.")
