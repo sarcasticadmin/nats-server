@@ -2196,23 +2196,29 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 	}
 
 	hp := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
-	//l, e := natsListen("tcp", hp)
 
-	local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
-	tlsCfg := &tls.Config{
-		Certificates: quicutil.MustGenerateSelfSignedCert(),
-		NextProtos:         []string{quicutil.SingleStreamProto},
+	var l net.Listener
+	var e error
+	if opts.Scion {
+		local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
+		tlsCfg := &tls.Config{
+			Certificates: quicutil.MustGenerateSelfSignedCert(),
+			NextProtos:   []string{quicutil.SingleStreamProto},
+		}
+		ql, _ := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
+
+		l = quicutil.SingleStreamListener{Listener: ql}
+	} else {
+		l, e = natsListen("tcp", hp)
 	}
-	ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
 
-	l := quicutil.SingleStreamListener{Listener: ql}
 	s.listenerErr = e
 	if e != nil {
 		s.mu.Unlock()
 		s.Fatalf("Error listening on port: %s, %q", hp, e)
 		return
 	}
-	s.Noticef("Listening for client connections %s",  l.Addr())
+	s.Noticef("Listening for client connections %s", l.Addr())
 
 	// Alert of TLS enabled.
 	if opts.TLSConfig != nil {
