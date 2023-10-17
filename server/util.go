@@ -15,6 +15,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
@@ -25,6 +26,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
+	"github.com/netsec-ethz/scion-apps/pkg/quicutil"
+
+	"inet.af/netaddr"
 )
 
 // This map is used to store URLs string as the key with a reference count as
@@ -250,7 +256,17 @@ var natsListenConfig = &net.ListenConfig{
 // natsListen() is the same as net.Listen() except that TCP keepalives are
 // disabled (to match Go's behavior before Go 1.13).
 func natsListen(network, address string) (net.Listener, error) {
-	return natsListenConfig.Listen(context.Background(), network, address)
+	if network == "scion" {
+		tlsCfg := &tls.Config{
+			Certificates: quicutil.MustGenerateSelfSignedCert(),
+			NextProtos:   []string{quicutil.SingleStreamProto},
+		}
+		local, _ := netaddr.ParseIPPort(address)
+		ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
+		return quicutil.SingleStreamListener{Listener: ql}, e
+	} else {
+		return natsListenConfig.Listen(context.Background(), network, address)
+	}
 }
 
 // natsDialTimeout is the same as net.DialTimeout() except the TCP keepalives

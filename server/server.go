@@ -45,10 +45,6 @@ import (
 	"github.com/nats-io/nuid"
 
 	"github.com/nats-io/nats-server/v2/logger"
-
-	"github.com/netsec-ethz/scion-apps/pkg/pan"
-	"github.com/netsec-ethz/scion-apps/pkg/quicutil"
-	"inet.af/netaddr"
 )
 
 const (
@@ -2200,14 +2196,8 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 	var l net.Listener
 	var e error
 	if opts.Scion {
-		local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
-		tlsCfg := &tls.Config{
-			Certificates: quicutil.MustGenerateSelfSignedCert(),
-			NextProtos:   []string{quicutil.SingleStreamProto},
-		}
-		ql, _ := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
-
-		l = quicutil.SingleStreamListener{Listener: ql}
+		//local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
+		l, e = natsListen("scion", hp)
 	} else {
 		l, e = natsListen("tcp", hp)
 	}
