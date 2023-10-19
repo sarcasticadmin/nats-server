@@ -5092,7 +5092,8 @@ func overrideCluster(opts *Options) error {
 		cls := fmt.Sprintf("%s:0", opts.Cluster.ListenStr[0:len(opts.Cluster.ListenStr)-3])
 		opts.Cluster.ListenStr = cls
 	}
-	clusterURL, err := url.Parse(opts.Cluster.ListenStr)
+	fullURL := MangleSCIONAddrURL(opts.Cluster.ListenStr)
+	clusterURL, err := url.Parse(fullURL)
 	if err != nil {
 		return err
 	}

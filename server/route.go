@@ -26,6 +26,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
 )
 
 // RouteType designates the router type
@@ -1661,15 +1663,22 @@ func (s *Server) startRouteAcceptLoop() {
 	}
 
 	hp := net.JoinHostPort(opts.Cluster.Host, strconv.Itoa(port))
-	l, e := natsListen("tcp", hp)
+
+	var l net.Listener
+	var e error
+	if opts.Scion {
+		l, e = natsListen("scion", pan.UnmangleSCIONAddr(hp))
+	} else {
+		l, e = natsListen("tcp", hp)
+	}
+
 	s.routeListenerErr = e
 	if e != nil {
 		s.mu.Unlock()
 		s.Fatalf("Error listening on router port: %d - %v", opts.Cluster.Port, e)
 		return
 	}
-	s.Noticef("Listening for route connections on %s",
-		net.JoinHostPort(opts.Cluster.Host, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
+	s.Noticef("Listening for route connections %s", l.Addr())
 
 	proto := RouteProtoV2
 	// For tests, we want to be able to make this server behave

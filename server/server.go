@@ -2196,7 +2196,6 @@ func (s *Server) AcceptLoop(clr chan struct{}) {
 	var l net.Listener
 	var e error
 	if opts.Scion {
-		//local := netaddr.IPPortFrom(netaddr.IP{}, uint16(opts.Port))
 		l, e = natsListen("scion", hp)
 	} else {
 		l, e = natsListen("tcp", hp)

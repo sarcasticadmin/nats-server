@@ -350,3 +350,21 @@ func copyStrings(src []string) []string {
 	copy(dst, src)
 	return dst
 }
+
+// Leveraging this from scion examples:
+// https://github.com/netsec-ethz/scion-apps/blob/28b48f6c4b4aa806d85ba0051ddab00317a1e3ac/pkg/shttp/transport.go#L108
+var scionAddrURLRegexp = regexp.MustCompile(
+	`^(\w*://)?(\w+@)?([^/?]*)(.*)$`)
+
+func MangleSCIONAddrURL(url string) string {
+	match := scionAddrURLRegexp.FindStringSubmatch(url)
+	if len(match) == 0 {
+		return url // does not match: it's not a URL or not a URL with a SCION address. Just pass it through.
+	}
+
+	schemePart := match[1]
+	userInfoPart := match[2]
+	hostPart := match[3]
+	tail := match[4]
+	return schemePart + userInfoPart + pan.MangleSCIONAddr(hostPart) + tail
+}
