@@ -261,7 +261,13 @@ func natsListen(network, address string) (net.Listener, error) {
 			Certificates: quicutil.MustGenerateSelfSignedCert(),
 			NextProtos:   []string{quicutil.SingleStreamProto},
 		}
-		local, _ := netaddr.ParseIPPort(address)
+		/* Kinda hacky since we have to handle cases where scion address is assumed
+		   and scion address is explicity set */
+		fulladdr := strings.Split(address, ",")
+		rightaddr := fulladdr[len(fulladdr)-1]
+		local, _ := netaddr.ParseIPPort(rightaddr)
+		/* TODO: Look into being able to specify a remote scion address instead of just
+		   assuming local scion daemon on the host */
 		ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
 		return quicutil.SingleStreamListener{Listener: ql}, e
 	} else {
