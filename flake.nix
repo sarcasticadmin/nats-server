@@ -17,7 +17,11 @@
         buildInputs = with pkgs; [
           go_1_19
           silver-searcher
+          delve
         ];
+        # Required for delve to run correctly
+        # https://github.com/go-delve/delve/issues/3085
+        hardeningDisable = [ "all" ];
         shellHook = ''
           alias go-build="go build -ldflags \"-w -X main.version=robsversion\" -o ./nats"
         '';
