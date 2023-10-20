@@ -15,6 +15,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
@@ -25,6 +26,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
+	"github.com/netsec-ethz/scion-apps/pkg/quicutil"
+
+	"inet.af/netaddr"
 )
 
 // This map is used to store URLs string as the key with a reference count as
@@ -250,7 +256,23 @@ var natsListenConfig = &net.ListenConfig{
 // natsListen() is the same as net.Listen() except that TCP keepalives are
 // disabled (to match Go's behavior before Go 1.13).
 func natsListen(network, address string) (net.Listener, error) {
-	return natsListenConfig.Listen(context.Background(), network, address)
+	if network == "scion" {
+		tlsCfg := &tls.Config{
+			Certificates: quicutil.MustGenerateSelfSignedCert(),
+			NextProtos:   []string{quicutil.SingleStreamProto},
+		}
+		/* Kinda hacky since we have to handle cases where scion address is assumed
+		   and scion address is explicity set */
+		fulladdr := strings.Split(address, ",")
+		rightaddr := fulladdr[len(fulladdr)-1]
+		local, _ := netaddr.ParseIPPort(rightaddr)
+		/* TODO: Look into being able to specify a remote scion address instead of just
+		   assuming local scion daemon on the host */
+		ql, e := pan.ListenQUIC(context.Background(), local, nil, tlsCfg, nil)
+		return quicutil.SingleStreamListener{Listener: ql}, e
+	} else {
+		return natsListenConfig.Listen(context.Background(), network, address)
+	}
 }
 
 // natsDialTimeout is the same as net.DialTimeout() except the TCP keepalives
@@ -333,4 +355,22 @@ func copyStrings(src []string) []string {
 	dst := make([]string, len(src))
 	copy(dst, src)
 	return dst
+}
+
+// Leveraging this from scion examples:
+// https://github.com/netsec-ethz/scion-apps/blob/28b48f6c4b4aa806d85ba0051ddab00317a1e3ac/pkg/shttp/transport.go#L108
+var scionAddrURLRegexp = regexp.MustCompile(
+	`^(\w*://)?(\w+@)?([^/?]*)(.*)$`)
+
+func MangleSCIONAddrURL(url string) string {
+	match := scionAddrURLRegexp.FindStringSubmatch(url)
+	if len(match) == 0 {
+		return url // does not match: it's not a URL or not a URL with a SCION address. Just pass it through.
+	}
+
+	schemePart := match[1]
+	userInfoPart := match[2]
+	hostPart := match[3]
+	tail := match[4]
+	return schemePart + userInfoPart + pan.MangleSCIONAddr(hostPart) + tail
 }
