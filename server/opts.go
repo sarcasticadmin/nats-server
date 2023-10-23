@@ -212,6 +212,7 @@ type Options struct {
 	Host                  string        `json:"addr"`
 	Port                  int           `json:"port"`
 	Scion                 bool          `json:"scion"`
+	ScionPathPreference   string        `json:"-"`
 	DontListen            bool          `json:"dont_listen"`
 	ClientAdvertise       string        `json:"-"`
 	Trace                 bool          `json:"-"`
@@ -792,7 +793,11 @@ func (o *Options) processConfigFileLine(k string, v interface{}, errors *[]error
 	case "host", "net":
 		o.Host = v.(string)
 	case "scion":
-		o.Scion = v.(bool)
+		err := parseScion(tk, o, errors, warnings)
+		if err != nil {
+			*errors = append(*errors, err)
+			return
+		}
 	case "debug":
 		o.Debug = v.(bool)
 		trackExplicitVal(o, &o.inConfig, "Debug", o.Debug)
@@ -2060,6 +2065,52 @@ func parseJetStream(v interface{}, opts *Options, errors *[]error, warnings *[]e
 	return nil
 }
 
+// Parse enablement of scion for a server.
+func parseScion(v interface{}, opts *Options, errors *[]error, warnings *[]error) error {
+	var lt token
+
+	tk, v := unwrapValue(v, &lt)
+
+	// Value here can be bool, or string "enabled" or a map.
+	switch vv := v.(type) {
+	case bool:
+		opts.Scion = v.(bool)
+	case string:
+		switch strings.ToLower(vv) {
+		case "enabled", "enable":
+			opts.Scion = true
+		case "disabled", "disable":
+			opts.Scion = false
+		default:
+			return &configErr{tk, fmt.Sprintf("Expected 'enabled' or 'disabled' for string value, got '%s'", vv)}
+		}
+	case map[string]interface{}:
+		doEnable := true
+		for mk, mv := range vv {
+			tk, mv = unwrapValue(mv, &lt)
+			switch strings.ToLower(mk) {
+			case "path_preference":
+				opts.ScionPathPreference = mv.(string)
+			default:
+				if !tk.IsUsedVariable() {
+					err := &unknownConfigFieldErr{
+						field: mk,
+						configErr: configErr{
+							token: tk,
+						},
+					}
+					*errors = append(*errors, err)
+					continue
+				}
+			}
+		}
+		opts.Scion = doEnable
+	default:
+		return &configErr{tk, fmt.Sprintf("Expected map, bool or string to define Scion, got %T", v)}
+	}
+
+	return nil
+}
 // parseLeafNodes will parse the leaf node config.
 func parseLeafNodes(v interface{}, opts *Options, errors *[]error, warnings *[]error) error {
 	var lt token
