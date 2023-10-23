@@ -4536,6 +4536,7 @@ func MergeOptions(fileOpts, flagOpts *Options) *Options {
 
 // RoutesFromStr parses route URLs from a string
 func RoutesFromStr(routesStr string) []*url.URL {
+	/*
 	routes := strings.Split(routesStr, ",")
 	if len(routes) == 0 {
 		return nil
@@ -4546,6 +4547,14 @@ func RoutesFromStr(routesStr string) []*url.URL {
 		u, _ := url.Parse(r)
 		routeUrls = append(routeUrls, u)
 	}
+	*/
+	fmt.Println("in case routes %s", routesStr)
+	// -routes should be able to be pass multiple times instead of via comma
+	routeUrls := []*url.URL{}
+	r := MangleSCIONAddrURL(routesStr)
+	u, _ := url.Parse(r)
+	routeUrls = append(routeUrls, u)
+
 	return routeUrls
 }
 
