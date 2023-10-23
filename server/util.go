@@ -274,15 +274,36 @@ func natsListen(network, address string) (net.Listener, error) {
 		return natsListenConfig.Listen(context.Background(), network, address)
 	}
 }
+var (
+	nextProtos = []string{quicutil.SingleStreamProto}
+)
 
 // natsDialTimeout is the same as net.DialTimeout() except the TCP keepalives
 // are disabled (to match Go's behavior before Go 1.13).
 func natsDialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
-	d := net.Dialer{
-		Timeout:   timeout,
-		KeepAlive: -1,
+	if network == "scion" {
+		policy, err := pan.PolicyFromCommandline("", "latency", false)
+		addr, err := pan.ResolveUDPAddr(context.TODO(), address)
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         nextProtos,
+		}
+		ql, err := pan.DialQUIC(context.Background(), netaddr.IPPort{}, addr, policy, nil, "", tlsCfg, nil)
+		if err != nil {
+			return nil, err
+		}
+		stream, err := quicutil.NewSingleStream(ql)
+		if err != nil {
+			return nil, err
+		}
+		return stream, nil
+	} else {
+		d := net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: -1,
+		}
+		return d.Dial(network, address)
 	}
-	return d.Dial(network, address)
 }
 
 // redactURLList() returns a copy of a list of URL pointers where each item
