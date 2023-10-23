@@ -1853,8 +1853,6 @@ func (s *Server) connectToRoute(rURL *url.URL, tryForEver, firstConnect bool) {
 	const connErrFmt = "Error trying to connect to route (attempt %v): %v"
 
 	s.mu.Lock()
-	resolver := s.routeResolver
-	excludedAddresses := s.routesToSelf
 	s.mu.Unlock()
 
 	attempts := 0
@@ -1863,14 +1861,19 @@ func (s *Server) connectToRoute(rURL *url.URL, tryForEver, firstConnect bool) {
 			return
 		}
 		var conn net.Conn
-		address, err := s.getRandomIP(resolver, rURL.Host, excludedAddresses)
+		var err error;
+		address := pan.UnmangleSCIONAddr(rURL.Host)
 		if err == errNoIPAvail {
 			// This is ok, we are done.
 			return
 		}
 		if err == nil {
 			s.Debugf("Trying to connect to route on %s (%s)", rURL.Host, address)
-			conn, err = natsDialTimeout("tcp", address, DEFAULT_ROUTE_DIAL)
+			if opts.Scion {
+				conn, err = natsDialTimeout("scion", address, DEFAULT_ROUTE_DIAL)
+			} else {
+				conn, err = natsDialTimeout("tcp", address, DEFAULT_ROUTE_DIAL)
+			}
 		}
 		if err != nil {
 			attempts++
