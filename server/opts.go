@@ -1529,7 +1529,12 @@ func parseListen(v interface{}) (*hostPort, error) {
 	case int64:
 		hp.port = int(vv)
 	case string:
-		host, port, err := net.SplitHostPort(vv)
+		fullURL := MangleSCIONAddrURL(vv)
+		clusterURL, err := url.Parse(fullURL)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse address string %q", vv)
+		}
+		host, port, err := net.SplitHostPort(clusterURL.Host)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse address string %q", vv)
 		}
