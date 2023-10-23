@@ -1931,7 +1931,8 @@ func (s *Server) saveRouteTLSName(routes []*url.URL) {
 // be started in a dedicated go routine.
 // Lock is held on entry
 func (s *Server) solicitRoutes(routes []*url.URL) {
-	s.saveRouteTLSName(routes)
+	//s.saveRouteTLSName(routes)
+	s.Debugf("Hello %s", routes)
 	for _, r := range routes {
 		route := r
 		s.startGoRoutine(func() { s.connectToRoute(route, true, true) })

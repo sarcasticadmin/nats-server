@@ -1666,11 +1666,14 @@ func parseURLs(a []interface{}, typ string, warnings *[]error) (urls []*url.URL,
 	var lt token
 	defer convertPanicToErrorList(&lt, &errors)
 
+	fmt.Println("before for loop")
 	dd := make(map[string]bool)
 
 	for _, u := range a {
 		tk, u := unwrapValue(u, &lt)
-		sURL := u.(string)
+		fmt.Println("before" + u.(string))
+		sURL := MangleSCIONAddrURL(u.(string))
+		fmt.Println("after" + sURL)
 		if dd[sURL] {
 			err := &configWarningErr{
 				field: sURL,

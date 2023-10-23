@@ -45,6 +45,8 @@ import (
 	"github.com/nats-io/nuid"
 
 	"github.com/nats-io/nats-server/v2/logger"
+
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
 )
 
 const (
@@ -3757,7 +3759,8 @@ func (s *Server) acceptError(acceptName string, err error, tmpDelay time.Duratio
 var errNoIPAvail = errors.New("no IP available")
 
 func (s *Server) getRandomIP(resolver netResolver, url string, excludedAddresses map[string]struct{}) (string, error) {
-	host, port, err := net.SplitHostPort(url)
+	s.Warnf("getRandomIP url %s", url)
+	host, port, err := pan.SplitHostPort(pan.UnmangleSCIONAddr(url))
 	if err != nil {
 		return "", err
 	}
