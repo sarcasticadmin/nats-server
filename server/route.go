@@ -1870,7 +1870,7 @@ func (s *Server) connectToRoute(rURL *url.URL, tryForEver, firstConnect bool) {
 		if err == nil {
 			s.Debugf("Trying to connect to route on %s (%s)", rURL.Host, address)
 			if opts.Scion {
-				conn, err = natsDialTimeout("scion", address, DEFAULT_ROUTE_DIAL)
+				conn, err = natsDialScion(address, opts.ScionPathPreference, DEFAULT_ROUTE_DIAL)
 			} else {
 				conn, err = natsDialTimeout("tcp", address, DEFAULT_ROUTE_DIAL)
 			}
