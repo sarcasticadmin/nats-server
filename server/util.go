@@ -302,7 +302,9 @@ func natsDialScion(address string, pathPreference string, timeout time.Duration)
 		InsecureSkipVerify: true,
 		NextProtos:         nextProtos,
 	}
-	ql, err := pan.DialQUIC(context.Background(), netaddr.IPPort{}, addr, policy, nil, "", tlsCfg, nil)
+	pathSelector := pan.NewDefaultSelector()
+	ql, err := pan.DialQUIC(context.Background(), netaddr.IPPort{}, addr, policy, pathSelector, "", tlsCfg, nil)
+	fmt.Println(pathSelector.Path())
 	if err != nil {
 		return nil, err
 	}
